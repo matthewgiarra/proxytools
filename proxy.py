@@ -47,119 +47,128 @@ def main():
     parser.add_argument('--custom-name', type=str, default=None, help = "Name under which to install the certificate (default: same as cert file name)")
     parser.add_argument('--ca-certificates-dir', type=str, default = "/usr/local/share/ca-certificates", help = "Directory in which to install the certificate (default: /usr/share/ca-certificates)")
     parser.add_argument('--profile', type=str, default=os.path.join('/home', getpass.getuser(), '.profile'), help = "Non-login profile file")
-    parser.add_argument('--setup-python', action="store_true", help = "Whether to setup environmental variables for python applications (e.g., pip, conda)")
+    parser.add_argument('--install-cert', action = "store_true", help = "Install certificate to ca-certificates")
+    parser.add_argument('--setup-python', action = "store_true", help = "Setup environmental variables for python applications (e.g., pip, conda)")
     args = parser.parse_args()
     cert = args.cert
     custom_name = args.custom_name
     ca_certificates_dir = args.ca_certificates_dir
     profile = args.profile
+    setup_python = args.setup_python
+    install_cert = args.install_cert
 
-    # If no certificate was supplied, search for one
-    if cert is None:
-        valid_extensions = ["*.cer", "*.crt", "*.cert"]
-        matching_files = []
-        for ext in valid_extensions:
-            files = glob.glob(ext)
-            for file in files:
-                matching_files.append(os.path.abspath(os.path.expanduser(file)))
-        if len(matching_files) == 0:
-            print(CColors.FAIL + "Error: no certificate supplied and no certificate files found in current directory. Exiting." + CColors.ENDC)
-            return
-        else:
-            for file in matching_files:
-                use_this_one = input("Use " + CColors.DIR + file + CColors.ENDC + " [y/N]? " + CColors.ENDC)
-                if use_this_one.lower() == "y":
-                    cert = file
-                    break
-    else:
-        cert = os.path.abspath(os.path.expanduser(cert))
-        if not os.path.isfile(cert):
-            print(CColors.FAIL + "Error: " + CColors.DIR + cert  + CColors.FAIL + " not found." + CColors.ENDC)
-            return
-
-    # Still no certs found
-    if cert is None:
-        print("No certificates found")
+    if install_cert is False and setup_python is False:
+        print("No actions specified. Call " + os.path.basename(__file__) + " with one or both of --setup-python, --install-cert")
         return
-    
-    # Cert was found:
-    cert = os.path.abspath(os.path.expanduser(cert))
-    print("Found " + CColors.DIR + cert + CColors.ENDC)
-    filename, ext = os.path.splitext(cert)
-    if ext != ".crt":
 
-        # Get the extension
-        cert_dir,_  = os.path.split(cert)
-        old_file_path = cert
+    if install_cert is True:
+        # If no certificate was supplied, search for one
+        if cert is None:
+            valid_extensions = ["*.cer", "*.crt", "*.cert"]
+            matching_files = []
+            for ext in valid_extensions:
+                files = glob.glob(ext)
+                for file in files:
+                    matching_files.append(os.path.abspath(os.path.expanduser(file)))
+            if len(matching_files) == 0:
+                print(CColors.FAIL + "Error: no certificate supplied and no certificate files found in current directory. Exiting." + CColors.ENDC)
+                return
+            else:
+                for file in matching_files:
+                    use_this_one = input("Use " + CColors.DIR + file + CColors.ENDC + " [y/N]? " + CColors.ENDC)
+                    if use_this_one.lower() == "y":
+                        cert = file
+                        break
+        else:
+            cert = os.path.abspath(os.path.expanduser(cert))
+            if not os.path.isfile(cert):
+                print(CColors.FAIL + "Error: " + CColors.DIR + cert  + CColors.FAIL + " not found." + CColors.ENDC)
+                return
+
+        # Still no certs found
+        if cert is None:
+            print("No certificates found")
+            return
         
-        # Make new file name with .crt extension
-        new_file_path = os.path.join(cert_dir, filename + ".crt")
-        print("Copying " + CColors.DIR + old_file_path + CColors.ENDC +  " --> " + CColors.DIR + new_file_path + CColors.ENDC)
+        # Cert was found:
+        cert = os.path.abspath(os.path.expanduser(cert))
+        print("Found " + CColors.DIR + cert + CColors.ENDC)
+        filename, ext = os.path.splitext(cert)
+        if ext != ".crt":
 
-        # Copy the certificate to one with a .crt extension
-        shutil.copyfile(old_file_path, new_file_path)
+            # Get the extension
+            cert_dir,_  = os.path.split(cert)
+            old_file_path = cert
+            
+            # Make new file name with .crt extension
+            new_file_path = os.path.join(cert_dir, filename + ".crt")
+            print("Copying " + CColors.DIR + old_file_path + CColors.ENDC +  " --> " + CColors.DIR + new_file_path + CColors.ENDC)
 
-        # Work with the new filepath from now on
-        cert = new_file_path
-    
-    # Rename the certificate to the custom name if one was supplied
-    if custom_name is None:
-        _, dst_filename = os.path.split(cert)
-    else:
-        dst_filename = custom_name.replace(".crt", "") + ".crt"  
-    
-    # Where to put the certificate
-    dst_filepath = os.path.join(ca_certificates_dir, dst_filename)
+            # Copy the certificate to one with a .crt extension
+            shutil.copyfile(old_file_path, new_file_path)
 
-    # Make the certificate directory
-    subprocess.Popen("sudo mkdir -p " + ca_certificates_dir, shell=True).wait()
+            # Work with the new filepath from now on
+            cert = new_file_path
+        
+        # Rename the certificate to the custom name if one was supplied
+        if custom_name is None:
+            _, dst_filename = os.path.split(cert)
+        else:
+            dst_filename = custom_name.replace(".crt", "") + ".crt"  
+        
+        # Where to put the certificate
+        dst_filepath = os.path.join(ca_certificates_dir, dst_filename)
 
-    # Move the certificate file
-    print("Moving " + CColors.DIR + cert + CColors.ENDC +  " --> " + CColors.DIR + dst_filepath + CColors.ENDC)
-    shutil.move(cert, dst_filepath)
-    
-    # Check that it worked
-    if not os.path.isfile(dst_filepath):
-        print(CColors.FAIL + "Error copying " + CColors.DIR + cert + CColors.FAIL + " --> " + CColors.DIR + dst_filepath + CColors.ENDC)
-        exit
+        # Make the certificate directory
+        subprocess.Popen("sudo mkdir -p " + ca_certificates_dir, shell=True).wait()
 
-    # Command to run sudo update-ca-certificates
-    subprocess.Popen("update-ca-certificates", shell=True).wait()
+        # Move the certificate file
+        print("Moving " + CColors.DIR + cert + CColors.ENDC +  " --> " + CColors.DIR + dst_filepath + CColors.ENDC)
+        shutil.move(cert, dst_filepath)
+        
+        # Check that it worked
+        if not os.path.isfile(dst_filepath):
+            print(CColors.FAIL + "Error copying " + CColors.DIR + cert + CColors.FAIL + " --> " + CColors.DIR + dst_filepath + CColors.ENDC)
+            exit
 
-    # See if the .pem file made it into /etc/ssl/certs
-    pem_file_name = dst_filename.replace(".crt", ".pem")
-    pem_file_path = os.path.join("/etc/ssl/certs", pem_file_name)
-    if os.path.isfile(pem_file_path):
-        print(CColors.OKCYAN + "Copied " + CColors.DIR + cert + CColors.OKCYAN + " --> " + CColors.DIR + pem_file_path + CColors.ENDC)
-    else:
-         print(CColors.FAIL + "Error copying " + CColors.DIR + cert + CColors.FAIL + " --> " + CColors.DIR + pem_file_path + CColors.ENDC)
-         return
+        # Command to run sudo update-ca-certificates
+        subprocess.Popen("update-ca-certificates", shell=True).wait()
+
+        # See if the .pem file made it into /etc/ssl/certs
+        pem_file_name = dst_filename.replace(".crt", ".pem")
+        pem_file_path = os.path.join("/etc/ssl/certs", pem_file_name)
+        if os.path.isfile(pem_file_path):
+            print(CColors.OKCYAN + "Copied " + CColors.DIR + cert + CColors.OKCYAN + " --> " + CColors.DIR + pem_file_path + CColors.ENDC)
+        else:
+            print(CColors.FAIL + "Error copying " + CColors.DIR + cert + CColors.FAIL + " --> " + CColors.DIR + pem_file_path + CColors.ENDC)
+            return
 
     # Set up environmental variables    
     # Check if each one is an environmental variable
-    env_vars = ["PIP_CERT", "REQUESTS_CA_BUNDLE", "SSL_CERT_FILE"]
-    for var in env_vars:
-        if os.getenv(var) is None:
+    if setup_python is True:
+        env_vars = ["PIP_CERT", "REQUESTS_CA_BUNDLE", "SSL_CERT_FILE"]
+        for var in env_vars:
+            if os.getenv(var) is None:
 
-            # Create the profile file if it doesn't already exist    
-            if not os.path.isfile(profile):
-                pathlib.Path(profile).touch()
+                # Create the profile file if it doesn't already exist    
+                if not os.path.isfile(profile):
+                    pathlib.Path(profile).touch()
 
-            # Open the file and search for the variable. 
-            # This accounts for the variable having already been added
-            # to the file but not yet set in the shell that launched proxy.py
-            var_in_file = False
-            with open(profile, 'r') as f:
-                for line in f:
-                    if var in line:
-                        print("Found " + CColors.DIR + line.replace("\n", '') + CColors.ENDC + " in " + CColors.DIR + profile + CColors.ENDC)
-                        var_in_file=True
-                        break
-            if var_in_file is False:
-                with open(profile, 'a') as f:
-                    cmd = var + "=/etc/ssl/certs/ca-certificates.crt"
-                    print("Appending " + CColors.DIR + cmd + CColors.ENDC + " to " + CColors.DIR + profile + CColors.ENDC)
-                    f.write(cmd + "\n")
+                # Open the file and search for the variable. 
+                # This accounts for the variable having already been added
+                # to the file but not yet set in the shell that launched proxy.py
+                var_in_file = False
+                with open(profile, 'r') as f:
+                    for line in f:
+                        if var in line:
+                            print("Found " + CColors.DIR + line.replace("\n", '') + CColors.ENDC + " in " + CColors.DIR + profile + CColors.ENDC)
+                            var_in_file=True
+                            break
+                if var_in_file is False:
+                    with open(profile, 'a') as f:
+                        cmd = var + "=/etc/ssl/certs/ca-certificates.crt"
+                        print("Appending " + CColors.DIR + cmd + CColors.ENDC + " to " + CColors.DIR + profile + CColors.ENDC)
+                        f.write(cmd + "\n")
     
 if __name__ == "__main__":
     main()
