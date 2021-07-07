@@ -105,7 +105,7 @@ def main():
             print("Copying " + CColors.DIR + old_file_path + CColors.ENDC +  " --> " + CColors.DIR + new_file_path + CColors.ENDC)
 
             # Copy the certificate to one with a .crt extension
-            shutil.copyfile(old_file_path, new_file_path)
+            subprocess.Popen("cp " + old_file_path + " " + new_file_path, shell=True).wait()
 
             # Work with the new filepath from now on
             cert = new_file_path
@@ -120,11 +120,13 @@ def main():
         dst_filepath = os.path.join(ca_certificates_dir, dst_filename)
 
         # Make the certificate directory
-        subprocess.Popen("sudo mkdir -p " + ca_certificates_dir, shell=True).wait()
+        if not os.path.isdir(ca_certificates_dir):
+            print("Creating " + CColors.DIR + ca_certificates_dir + CColors.ENDC)
+            subprocess.Popen("sudo mkdir -p " + ca_certificates_dir, shell=True).wait()
 
         # Move the certificate file
         print("Moving " + CColors.DIR + cert + CColors.ENDC +  " --> " + CColors.DIR + dst_filepath + CColors.ENDC)
-        subprocess.Popen("sudo mv " + cert + " " + dst_filepath)
+        subprocess.Popen("sudo mv " + cert + " " + dst_filepath, shell=True).wait()
         
         # Check that it worked
         if not os.path.isfile(dst_filepath):
