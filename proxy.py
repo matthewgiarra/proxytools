@@ -124,7 +124,7 @@ def main():
 
         # Move the certificate file
         print("Moving " + CColors.DIR + cert + CColors.ENDC +  " --> " + CColors.DIR + dst_filepath + CColors.ENDC)
-        shutil.move(cert, dst_filepath)
+        subprocess.Popen("sudo mv " + cert + " " + dst_filepath)
         
         # Check that it worked
         if not os.path.isfile(dst_filepath):
@@ -132,7 +132,7 @@ def main():
             exit
 
         # Command to run sudo update-ca-certificates
-        subprocess.Popen("update-ca-certificates", shell=True).wait()
+        subprocess.Popen("sudo update-ca-certificates", shell=True).wait()
 
         # See if the .pem file made it into /etc/ssl/certs
         pem_file_name = dst_filename.replace(".crt", ".pem")
