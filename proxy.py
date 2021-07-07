@@ -61,7 +61,7 @@ def main():
     install_cert = args.install_cert
 
     if install_cert is False and setup_python is False:
-        print("No actions specified. Call " + os.path.basename(__file__) + " with one or both of --setup-python, --install-cert")
+        print("No actions specified. Call " + os.path.basename(__file__) + " with one or both of --install-cert, --setup-python")
         return
 
     if install_cert is True:
