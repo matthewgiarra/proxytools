@@ -39,6 +39,9 @@ def check_version():
 
 def main():
 
+    # Default profile 
+    default_profile = os.path.join(str(pathlib.Path.home()), '.bash_profile')
+    
     # Check the python version
     check_version()
 
@@ -46,7 +49,7 @@ def main():
     parser.add_argument('--cert', type=str, default=None, help="Path to the SSL certificate")
     parser.add_argument('--custom-name', type=str, default=None, help = "Name under which to install the certificate (default: same as cert file name)")
     parser.add_argument('--ca-certificates-dir', type=str, default = "/usr/local/share/ca-certificates", help = "Directory in which to install the certificate (default: /usr/share/ca-certificates)")
-    parser.add_argument('--profile', type=str, default=os.path.join('/home', getpass.getuser(), '.profile'), help = "Non-login profile file")
+    parser.add_argument('--profile', type=str, default=default_profile, help = "Shell profile (default: " + default_profile + ")")
     parser.add_argument('--install-cert', action = "store_true", help = "Install certificate to ca-certificates")
     parser.add_argument('--setup-python', action = "store_true", help = "Setup environmental variables for python applications (e.g., pip, conda)")
     args = parser.parse_args()
@@ -163,14 +166,19 @@ def main():
                 with open(profile, 'r') as f:
                     for line in f:
                         if var in line:
-                            print("Found " + CColors.DIR + line.replace("\n", '') + CColors.ENDC + " in " + CColors.DIR + profile + CColors.ENDC)
-                            var_in_file=True
-                            break
+                            if line.lstrip()[0] != "#": # Make sure the line isn't commented out
+                                print("Found " + CColors.DIR + line.replace("\n", '') + CColors.ENDC + " in " + CColors.DIR + profile + CColors.ENDC)
+                                var_in_file=True
+                                break
                 if var_in_file is False:
                     with open(profile, 'a') as f:
                         cmd = var + "=/etc/ssl/certs/ca-certificates.crt"
                         print("Appending " + CColors.DIR + cmd + CColors.ENDC + " to " + CColors.DIR + profile + CColors.ENDC)
                         f.write(cmd + "\n")
+        unset_vars = [var for var in env_vars if os.getenv(var) is None]
+        if len(unset_vars) > 0:
+            print("The following required environmental variables are unset in the current shell: " + CColors.DIR + str(unset_vars) + CColors.ENDC)
+            print("Log out and then log back in to update environmental variables.")
     
 if __name__ == "__main__":
     main()
