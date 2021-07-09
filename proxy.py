@@ -39,7 +39,10 @@ def check_version():
 def main():
 
     # Default profile 
-    default_profile = os.path.join(str(pathlib.Path.home()), '.bash_profile')
+    if os.path.isfile( os.path.join(str(pathlib.Path.home()), '.bash_profile')):
+        default_profile = os.path.join(str(pathlib.Path.home()), '.bash_profile')
+    else:
+        default_profile = os.path.join(str(pathlib.Path.home()), '.bashrc')
     
     # Check the python version
     check_version()
