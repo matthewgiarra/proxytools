@@ -31,7 +31,6 @@ def check_version():
     if python_version.major < 3:
         print(CColors.FAIL + "Error: python version is " + ver_num + ", but 3.6 or greater is required.")
         
-        
         python_executable = sys.executable
         print("Hint: the current python executable is " + CColors.DIR + python_executable + CColors.FAIL + ". Is that the same path you get when you run `which python`? Did you run this script with `sudo python`? Doing so can affect which python executable gets launched, and sudo python can be different from non-sudo python.")
         print("Hint: try running with python3 instead of python." + CColors.ENDC)
@@ -172,9 +171,11 @@ def main():
                                 break
                 if var_in_file is False:
                     with open(profile, 'a') as f:
-                        cmd = var + "=/etc/ssl/certs/ca-certificates.crt"
+                        cmd = "export " + var + "=/etc/ssl/certs/ca-certificates.crt"
                         print("Appending " + CColors.DIR + cmd + CColors.ENDC + " to " + CColors.DIR + profile + CColors.ENDC)
                         f.write(cmd + "\n")
+            else:
+                print(CColors.OKCYAN + "Environmental variable already set: " + CColors.DIR + var + "=" + os.getenv(var) + CColors.ENDC)
         unset_vars = [var for var in env_vars if os.getenv(var) is None]
         if len(unset_vars) > 0:
             print("The following required environmental variables are unset in the current shell: " + CColors.DIR + str(unset_vars) + CColors.ENDC)
