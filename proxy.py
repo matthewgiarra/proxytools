@@ -51,6 +51,7 @@ def main():
     parser.add_argument('--profile', type=str, default=default_profile, help = "Shell profile (default: " + default_profile + ")")
     parser.add_argument('--install-cert', action = "store_true", help = "Install certificate to ca-certificates")
     parser.add_argument('--setup-python', action = "store_true", help = "Setup environmental variables for python applications (e.g., pip, conda)")
+    parser.add_argument('-f', '--force', action="store_true", help = "Append environmental variables to profile even if they are already set in the current environment")
     args = parser.parse_args()
     cert = args.cert
     custom_name = args.custom_name
@@ -58,6 +59,7 @@ def main():
     profile = args.profile
     setup_python = args.setup_python
     install_cert = args.install_cert
+    force = args.force
 
     if install_cert is False and setup_python is False:
         print("No actions specified. Call " + os.path.basename(__file__) + " with one or both of --install-cert, --setup-python")
@@ -152,7 +154,7 @@ def main():
     if setup_python is True:
         env_vars = ["PIP_CERT", "REQUESTS_CA_BUNDLE", "SSL_CERT_FILE"]
         for var in env_vars:
-            if os.getenv(var) is None:
+            if (os.getenv(var) is None) or (force is True):
 
                 # Create the profile file if it doesn't already exist    
                 if not os.path.isfile(profile):
